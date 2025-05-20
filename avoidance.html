@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deadlock Avoidance - Banker's Algorithm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --secondary: #f1f5f9;
+      --accent: #38bdf8;
+      --text: #1e293b;
+      --card-bg: #fff;
+      --card-shadow: 0 4px 24px rgba(30,41,59,0.08);
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--secondary);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 1.2rem 0;
+      text-align: center;
+      font-size: 1.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 8px rgba(30,41,59,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .container {
+      background: var(--card-bg);
+      border-radius: 1.1rem;
+      box-shadow: var(--card-shadow);
+      max-width: 700px;
+      margin: 2.5rem auto;
+      padding: 2.5rem 2rem 2rem 2rem;
+    }
+    .back-btn {
+      display: inline-block;
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 1.2rem;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.15s;
+    }
+    .back-btn:hover, .back-btn:focus {
+      color: var(--accent);
+    }
+    .strategy-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    .strategy-desc {
+      color: #64748b;
+      font-size: 1.05rem;
+      margin-bottom: 1.7rem;
+    }
+    .algo-content {
+      margin-top: 1.2rem;
+      padding: 1.2rem;
+      background: var(--secondary);
+      border-radius: 0.7rem;
+      box-shadow: 0 2px 8px rgba(30,41,59,0.05);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+    }
+    input[type="number"] {
+      padding: 7px;
+      border-radius: 5px;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+      width: 70px;
+      margin: 2px 0;
+      transition: border 0.15s;
+    }
+    input[type="number"]:focus {
+      border: 1.5px solid var(--primary);
+      outline: none;
+    }
+    .input-group {
+      margin-bottom: 1.2rem;
+    }
+    .algo-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.7rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.16s;
+      margin-top: 1rem;
+    }
+    .algo-btn:hover, .algo-btn:focus {
+      background: var(--primary);
+    }
+    #result {
+      padding: 1rem;
+      margin-top: 1.2rem;
+      border-radius: 0.7rem;
+      font-size: 1.08rem;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(30,41,59,0.06);
+    }
+    .safe {
+      background: #dcfce7;
+      color: var(--success);
+      border: 1.5px solid var(--success);
+    }
+    .unsafe {
+      background: #fee2e2;
+      color: var(--danger);
+      border: 1.5px solid var(--danger);
+    }
+    @media (max-width: 700px) {
+      .container {
+        margin: 1.2rem 0.5rem;
+        padding: 1.2rem 0.5rem;
+      }
+      input[type="number"] {
+        width: 45px;
+      }
+      th, td {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Deadlock Avoidance
+  </header>
+  <div class="container">
+    <button class="back-btn" onclick="window.location.href='index.html'">&larr; Back to Main Page</button>
+    <div class="strategy-title">Banker's Algorithm</div>
+    <div class="strategy-desc">
+      Enter the number of processes and resource types, then fill in the <b>Max</b>, <b>Allocation</b>, and <b>Available</b> matrices. Click "Check Safety" to see if the system is in a safe state and view the safe sequence.
+    </div>
+    <div class="algo-content">
+      <div class="input-group">
+        <label><strong>Number of Processes:</strong></label>
+        <input type="number" id="numProcesses" min="1" value="3" onchange="updateTables()">
+        &nbsp; &nbsp;
+        <label><strong>Number of Resource Types:</strong></label>
+        <input type="number" id="numResources" min="1" value="3" onchange="updateTables()">
+      </div>
+      <div id="matrixInputs"></div>
+      <button class="algo-btn" onclick="runBankersAlgorithm()">Check Safety</button>
+      <div id="result"></div>
+    </div>
+  </div>
+  <script>
+    let numProcesses = 3;
+    let numResources = 3;
+
+    function updateTables() {
+      numProcesses = parseInt(document.getElementById('numProcesses').value);
+      numResources = parseInt(document.getElementById('numResources').value);
+
+      let html = '';
+
+      // Max Matrix
+      html += `<div style="overflow-x:auto;"><table><tr><th colspan="${numResources+1}" style="text-align:left;">Max Matrix</th></tr>`;
+      html += `<tr><th>Process</th>`;
+      for(let j=0;j<numResources;j++) html += `<th>R${j+1}</th>`;
+      html += `</tr>`;
+      for(let i=0;i<numProcesses;i++) {
+        html += `<tr><td>P${i}</td>`;
+        for(let j=0;j<numResources;j++) {
+          html += `<td><input type="number" min="0" value="0" id="max-${i}-${j}"></td>`;
+        }
+        html += `</tr>`;
+      }
+      html += `</table></div>`;
+
+      // Allocation Matrix
+      html += `<div style="overflow-x:auto;"><table><tr><th colspan="${numResources+1}" style="text-align:left;">Allocation Matrix</th></tr>`;
+      html += `<tr><th>Process</th>`;
+      for(let j=0;j<numResources;j++) html += `<th>R${j+1}</th>`;
+      html += `</tr>`;
+      for(let i=0;i<numProcesses;i++) {
+        html += `<tr><td>P${i}</td>`;
+        for(let j=0;j<numResources;j++) {
+          html += `<td><input type="number" min="0" value="0" id="alloc-${i}-${j}"></td>`;
+        }
+        html += `</tr>`;
+      }
+      html += `</table></div>`;
+
+      // Available Vector
+      html += `<div style="overflow-x:auto;"><table><tr><th colspan="${numResources}" style="text-align:left;">Available Resources</th></tr><tr>`;
+      for(let j=0;j<numResources;j++) html += `<th>R${j+1}</th>`;
+      html += `</tr><tr>`;
+      for(let j=0;j<numResources;j++) {
+        html += `<td><input type="number" min="0" value="0" id="avail-${j}"></td>`;
+      }
+      html += `</tr></table></div>`;
+
+      document.getElementById('matrixInputs').innerHTML = html;
+    }
+
+    function runBankersAlgorithm() {
+      // Collect Max, Allocation, Available
+      let max = [], alloc = [], avail = [];
+      for(let i=0;i<numProcesses;i++) {
+        let row = [];
+        for(let j=0;j<numResources;j++) {
+          row.push(parseInt(document.getElementById(`max-${i}-${j}`).value));
+        }
+        max.push(row);
+      }
+      for(let i=0;i<numProcesses;i++) {
+        let row = [];
+        for(let j=0;j<numResources;j++) {
+          row.push(parseInt(document.getElementById(`alloc-${i}-${j}`).value));
+        }
+        alloc.push(row);
+      }
+      for(let j=0;j<numResources;j++) {
+        avail.push(parseInt(document.getElementById(`avail-${j}`).value));
+      }
+
+      // Calculate Need
+      let need = [];
+      for(let i=0;i<numProcesses;i++) {
+        let row = [];
+        for(let j=0;j<numResources;j++) {
+          row.push(max[i][j] - alloc[i][j]);
+        }
+        need.push(row);
+      }
+
+      // Banker's Algorithm Safety Check
+      let work = avail.slice();
+      let finish = Array(numProcesses).fill(false);
+      let safeSeq = [];
+
+      let changed;
+      do {
+        changed = false;
+        for(let i=0;i<numProcesses;i++) {
+          if(!finish[i] && need[i].every((n, j) => n <= work[j])) {
+            for(let j=0;j<numResources;j++) work[j] += alloc[i][j];
+            finish[i] = true;
+            safeSeq.push(`P${i}`);
+            changed = true;
+          }
+        }
+      } while(changed);
+
+      const resultDiv = document.getElementById('result');
+      if(finish.every(f => f)) {
+        resultDiv.className = 'safe';
+        resultDiv.innerHTML = `✅ <strong>System is in a safe state.</strong><br>Safe sequence: <b>${safeSeq.join(' → ')}</b>`;
+      } else {
+        resultDiv.className = 'unsafe';
+        resultDiv.innerHTML = `❌ <strong>System is NOT in a safe state!</strong><br>No safe sequence exists.`;
+      }
+    }
+
+    // Initial setup
+    updateTables();
+  </script>
+</body>
+</html>
