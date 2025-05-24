@@ -1,278 +1,358 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Deadlock Detection - Wait-for Graph</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root {
-      --primary: #2563eb;
-      --secondary: #f1f5f9;
-      --accent: #38bdf8;
-      --text: #1e293b;
-      --card-bg: #fff;
-      --card-shadow: 0 4px 24px rgba(30,41,59,0.08);
-      --danger: #ef4444;
-      --success: #22c55e;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deadlock Detection Algorithm Simulator</title>
+<style>
+  /* Reset and base */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f7f9fc;
+    margin: 0; padding: 0;
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #2563eb;
+    color: white;
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 1.25rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgb(37 99 235 / 0.35);
+  }
+  main.container {
+    max-width: 900px;
+    margin: 2rem auto 3rem;
+    background: white;
+    padding: 2rem 2.5rem;
+    border-radius: 14px;
+    box-shadow: 0 8px 25px rgb(0 0 0 / 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+  label {
+    font-weight: 600;
+  }
+  .inputs-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2rem;
+    align-items: center;
+  }
+  input[type="number"] {
+    width: 90px;
+    padding: 0.45rem 0.6rem;
+    font-size: 1rem;
+    border: 1.8px solid #cbd5e1;
+    border-radius: 8px;
+    text-align: center;
+    outline-offset: 2px;
+    transition: border-color 0.3s ease;
+  }
+  input[type="number"]:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 8px #2563ebaa;
+  }
+  button.run-btn {
+    background: #2563eb;
+    color: white;
+    font-weight: 700;
+    font-size: 1.15rem;
+    border: none;
+    border-radius: 12px;
+    padding: 0.85rem 2.2rem;
+    cursor: pointer;
+    align-self: center;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 4px 12px rgb(37 99 235 / 0.5);
+  }
+  button.run-btn:hover {
+    background: #1e40af;
+    box-shadow: 0 6px 18px rgb(30 64 175 / 0.7);
+  }
+  #matrices {
+    overflow-x: auto;
+    border-radius: 12px;
+    box-shadow: 0 2px 14px rgb(100 116 139 / 0.12);
+    background: #f9fafb;
+    padding: 1rem 1rem 0.8rem;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 360px;
+  }
+  th {
+    background-color: #bfdbfe;
+    color: #1e40af;
+    font-weight: 700;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 2px solid #93c5fd;
+    text-align: center;
+    user-select: none;
+  }
+  td {
+    border: 1px solid #cbd5e1;
+    text-align: center;
+    padding: 0.6rem 0.8rem;
+    background: white;
+  }
+  td input[type="number"] {
+    width: 65px;
+    padding: 0.35rem 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    border: 1.4px solid #cbd5e1;
+    border-radius: 7px;
+    text-align: center;
+    transition: border-color 0.25s ease;
+  }
+  td input[type="number"]:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 6px #2563ebaa;
+    outline-offset: 2px;
+  }
+  #result {
+    padding: 1.2rem 1.8rem;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    text-align: center;
+    min-height: 4rem;
+    user-select: none;
+    box-shadow: 0 3px 14px rgb(0 0 0 / 0.08);
+  }
+  #result.no-deadlock {
+    background-color: #dcfce7;
+    color: #16a34a;
+    border: 2.5px solid #16a34a;
+  }
+  #result.deadlock {
+    background-color: #fee2e2;
+    color: #dc2626;
+    border: 2.5px solid #dc2626;
+  }
+  code.process-list {
+    background: #f3f4f6;
+    padding: 0.2rem 0.6rem;
+    border-radius: 7px;
+    font-weight: 700;
+    font-size: 1rem;
+    user-select: text;
+  }
+  @media (max-width: 520px) {
+    .inputs-row {
+      flex-direction: column;
+      gap: 1rem;
     }
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--secondary);
-      color: var(--text);
-      min-height: 100vh;
+    input[type="number"] {
+      width: 100%;
     }
-    header {
-      background: var(--primary);
-      color: #fff;
-      padding: 1.2rem 0;
-      text-align: center;
-      font-size: 1.7rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      box-shadow: 0 2px 8px rgba(30,41,59,0.05);
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-    .container {
-      background: var(--card-bg);
-      border-radius: 1.1rem;
-      box-shadow: var(--card-shadow);
-      max-width: 650px;
-      margin: 2.5rem auto;
-      padding: 2.5rem 2rem 2rem 2rem;
-    }
-    .back-btn {
-      display: inline-block;
-      background: none;
-      border: none;
-      color: var(--primary);
-      font-size: 1rem;
-      font-weight: 500;
-      margin-bottom: 1.2rem;
-      cursor: pointer;
-      text-decoration: underline;
-      transition: color 0.15s;
-    }
-    .back-btn:hover, .back-btn:focus {
-      color: var(--accent);
-    }
-    .strategy-title {
-      font-size: 1.35rem;
-      font-weight: 600;
-      color: var(--primary);
-      margin-bottom: 0.5rem;
-    }
-    .strategy-desc {
-      color: #64748b;
-      font-size: 1.05rem;
-      margin-bottom: 1.7rem;
-    }
-    .algo-content {
-      margin-top: 1.2rem;
-      padding: 1.2rem;
-      background: var(--secondary);
-      border-radius: 0.7rem;
-      box-shadow: 0 2px 8px rgba(30,41,59,0.05);
+    td input[type="number"] {
+      width: 100%;
     }
     table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-bottom: 1rem;
+      min-width: 280px;
     }
-    th, td {
-      border: 1px solid #e2e8f0;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background: #f8fafc;
-      font-weight: 600;
-    }
-    input[type="number"], input[type="text"] {
-      padding: 7px;
-      border-radius: 5px;
-      border: 1px solid #cbd5e1;
-      font-size: 1rem;
-      width: 100px;
-      margin: 2px 0;
-      transition: border 0.15s;
-    }
-    input[type="number"]:focus, input[type="text"]:focus {
-      border: 1.5px solid var(--primary);
-      outline: none;
-    }
-    .input-group {
-      margin-bottom: 1.2rem;
-    }
-    .algo-btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 0.7rem 1.5rem;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.16s;
-      margin-top: 1rem;
-    }
-    .algo-btn:hover, .algo-btn:focus {
-      background: var(--primary);
-    }
-    #result {
-      padding: 1rem;
-      margin-top: 1.2rem;
-      border-radius: 0.7rem;
-      font-size: 1.08rem;
-      font-weight: 500;
-      box-shadow: 0 2px 8px rgba(30,41,59,0.06);
-    }
-    .safe {
-      background: #dcfce7;
-      color: var(--success);
-      border: 1.5px solid var(--success);
-    }
-    .deadlock {
-      background: #fee2e2;
-      color: var(--danger);
-      border: 1.5px solid var(--danger);
-    }
-    .graph {
-      border: 1px solid #e2e8f0;
-      background: #f8fafc;
-      padding: 1.2rem;
-      border-radius: 0.7rem;
-      margin-top: 1.5rem;
-      font-size: 1.05rem;
-      color: #334155;
-      box-shadow: 0 2px 8px rgba(30,41,59,0.03);
-      word-break: break-word;
-    }
-    @media (max-width: 700px) {
-      .container {
-        margin: 1.2rem 0.5rem;
-        padding: 1.2rem 0.5rem;
-      }
-      input[type="number"], input[type="text"] {
-        width: 60px;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <header>
-    Deadlock Detection
-  </header>
-  <div class="container">
-    <button class="back-btn" onclick="window.location.href='index.html'">&larr; Back to Main Page</button>
-    <div class="strategy-title">Wait-for Graph Algorithm</div>
-    <div class="strategy-desc">
-      Enter the number of processes and specify, for each process, the other processes it is waiting for (comma-separated). The system will detect if a deadlock (cycle) exists in the wait-for graph.
-    </div>
-    <div class="algo-content">
-      <div class="input-group">
-        <label><strong>Number of Processes:</strong></label>
-        <input type="number" id="numProcesses" min="2" value="4" onchange="createInputs()">
-      </div>
-      <div id="processInputs"></div>
-      <button class="algo-btn" onclick="detectDeadlock()">Detect Deadlock</button>
-      <div id="result"></div>
-      <div id="graphVisual" class="graph"></div>
-    </div>
-  </div>
-  <script>
-    function createInputs() {
-      const num = parseInt(document.getElementById('numProcesses').value);
-      let html = `<table><tr><th>Process</th><th>Waits For (comma-separated)</th></tr>`;
-      for(let i = 0; i < num; i++) {
-        html += `
-          <tr>
-            <td><strong>P${i}</strong></td>
-            <td><input type="text" id="p${i}" placeholder="e.g., 1,2"></td>
-          </tr>`;
+<header>Deadlock Detection Algorithm Simulator</header>
+<main class="container" role="main" aria-label="Deadlock detection simulator interface">
+  <section class="inputs-row" aria-label="Process and resource configuration">
+    <label for="processCount">Number of Processes:</label>
+    <input type="number" id="processCount" min="1" max="20" value="3" aria-describedby="processCountDesc" />
+    <label for="resourceCount">Number of Resource Types:</label>
+    <input type="number" id="resourceCount" min="1" max="10" value="3" aria-describedby="resourceCountDesc" />
+  </section>
+
+  <section id="matrices" aria-live="polite" aria-label="Input matrices for Allocation, Request and Available resources">
+    <!-- Tables will be injected here -->
+  </section>
+
+  <button class="run-btn" id="runBtn" aria-label="Run deadlock detection algorithm">Run Deadlock Detection</button>
+
+  <section id="result" aria-live="assertive" aria-atomic="true" role="alert" aria-live="polite"></section>
+</main>
+
+<script>
+  const maxProcesses = 20;
+  const maxResources = 10;
+
+  let numProcesses = 3;
+  let numResources = 3;
+
+  const processCountInput = document.getElementById('processCount');
+  const resourceCountInput = document.getElementById('resourceCount');
+  const matricesDiv = document.getElementById('matrices');
+  const resultDiv = document.getElementById('result');
+  const runBtn = document.getElementById('runBtn');
+
+  // Create table html for Allocation and Request matrices and Available vector
+  function createMatrixTable(label, prefix, rows, cols) {
+    let html = `<table aria-label="${label}"><thead><tr><th>${label}</th>`;
+    for(let c = 0; c < cols; c++) html += `<th>R${c}</th>`;
+    html += '</tr></thead><tbody>';
+
+    for(let r = 0; r < rows; r++) {
+      html += `<tr><td>P${r}</td>`;
+      for(let c = 0; c < cols; c++) {
+        html += `<td><input type="number" min="0" value="0" id="${prefix}-${r}-${c}" aria-label="${label} for process ${r} resource ${c}" oninput="validateInput(this)" /></td>`;
       }
-      html += "</table>";
-      document.getElementById('processInputs').innerHTML = html;
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    return html;
+  }
+
+  // Create Available resources row table
+  function createAvailableTable(cols) {
+    let html = `<table aria-label="Available Resources"><thead><tr>`;
+    for(let c = 0; c < cols; c++) html += `<th>R${c}</th>`;
+    html += '</tr></thead><tbody><tr>';
+    for(let c = 0; c < cols; c++) {
+      html += `<td><input type="number" min="0" value="0" id="avail-${c}" aria-label="Available resource R${c}" oninput="validateInput(this)" /></td>`;
+    }
+    html += '</tr></tbody></table>';
+    return html;
+  }
+
+  // Validate inputs: enforce non-negative integers
+  function validateInput(el) {
+    let val = parseInt(el.value);
+    if (isNaN(val) || val < 0) el.value = 0;
+  }
+
+  function updateMatrices() {
+    numProcesses = Math.min(Math.max(1, parseInt(processCountInput.value) || 3), maxProcesses);
+    numResources = Math.min(Math.max(1, parseInt(resourceCountInput.value) || 3), maxResources);
+
+    processCountInput.value = numProcesses;
+    resourceCountInput.value = numResources;
+
+    let html = '';
+    html += createMatrixTable('Allocation Matrix', 'alloc', numProcesses, numResources);
+    html += createMatrixTable('Request Matrix', 'request', numProcesses, numResources);
+    html += createAvailableTable(numResources);
+
+    matricesDiv.innerHTML = html;
+
+    resultDiv.textContent = '';
+    resultDiv.className = '';
+  }
+
+  // Get matrix values from input fields
+  function getMatrix(prefix) {
+    const matrix = [];
+    for(let i=0; i < numProcesses; i++) {
+      const row = [];
+      for(let j=0; j < numResources; j++) {
+        const val = parseInt(document.getElementById(`${prefix}-${i}-${j}`).value) || 0;
+        row.push(val);
+      }
+      matrix.push(row);
+    }
+    return matrix;
+  }
+
+  // Get Available vector
+  function getAvailableVector() {
+    const arr = [];
+    for(let j=0; j < numResources; j++) {
+      arr.push(parseInt(document.getElementById(`avail-${j}`).value) || 0);
+    }
+    return arr;
+  }
+
+  // Deadlock detection algorithm implementation
+  function deadlockDetection(allocation, request, available) {
+    const n = allocation.length;      // number of processes
+    const r = available.length;       // number of resource types
+
+    const work = [...available];      // work vector
+    const finish = new Array(n).fill(false);  // finish vector
+
+    // Mark processes with zero allocation as finished (no resources held)
+    for(let i = 0; i < n; i++) {
+      const allocatedSum = allocation[i].reduce((a,b) => a+b, 0);
+      if (allocatedSum === 0) finish[i] = true;
     }
 
-    function detectDeadlock() {
-      const numProcesses = parseInt(document.getElementById('numProcesses').value);
-      const graph = [];
-      let isValid = true;
-
-      // Build adjacency list from user input
-      for(let i = 0; i < numProcesses; i++) {
-        const input = document.getElementById(`p${i}`).value;
-        const edges = input.split(',')
-          .map(x => parseInt(x.trim()))
-          .filter(x => !isNaN(x) && x >= 0 && x < numProcesses);
-        if(input && edges.length === 0) {
-          showResult(`Invalid input for process P${i}.`, false);
-          isValid = false;
-          break;
+    let changed;
+    do {
+      changed = false;
+      for(let i=0; i<n; i++) {
+        if (!finish[i]) {
+          // Check if request[i] <= work
+          let canAllocate = true;
+          for(let j=0; j<r; j++) {
+            if (request[i][j] > work[j]) {
+              canAllocate = false;
+              break;
+            }
+          }
+          if (canAllocate) {
+            // Process i can finish, release resources
+            for(let j=0; j<r; j++) {
+              work[j] += allocation[i][j];
+            }
+            finish[i] = true;
+            changed = true;
+          }
         }
-        graph.push(edges);
       }
+    } while(changed);
 
-      if(!isValid) return;
-
-      // Detect cycle using DFS with coloring
-      const hasCycle = checkForDeadlock(graph);
-
-      // Display results
-      showResult(
-        hasCycle
-          ? "⚠️ Deadlock Detected! (Cycle exists in wait-for graph)"
-          : "✅ System is Safe! (No cycles in wait-for graph)",
-        !hasCycle
-      );
-
-      // Visualize graph
-      visualizeGraph(graph);
+    // Collect processes not finished => deadlocked
+    const deadlockedProcesses = [];
+    for(let i=0; i<n; i++) {
+      if (!finish[i]) deadlockedProcesses.push(i);
     }
+    return deadlockedProcesses;
+  }
 
-    function checkForDeadlock(graph) {
-      const states = new Array(graph.length).fill(0); // 0=unvisited, 1=visiting, 2=visited
-      function hasCycle(node) {
-        if(states[node] === 1) return true;
-        if(states[node] === 2) return false;
-        states[node] = 1; // Mark as visiting
-        for(const neighbor of graph[node]) {
-          if(hasCycle(neighbor)) return true;
+  function runDetection() {
+    const allocation = getMatrix('alloc');
+    const request = getMatrix('request');
+    const available = getAvailableVector();
+
+    // Basic validation: Ensure no negative, and allocation/request not exceeding available
+    for(let i=0; i<numProcesses; i++) {
+      for(let j=0; j<numResources; j++) {
+        if(allocation[i][j] < 0 || request[i][j] < 0 || available[j] < 0) {
+          alert('Resource values cannot be negative.');
+          return;
         }
-        states[node] = 2; // Mark as visited
-        return false;
       }
-      for(let i = 0; i < graph.length; i++) {
-        if(states[i] === 0 && hasCycle(i)) return true;
-      }
-      return false;
     }
 
-    function showResult(message, isSafe) {
-      const resultDiv = document.getElementById('result');
-      resultDiv.className = isSafe ? 'safe' : 'deadlock';
-      resultDiv.innerHTML = message;
-    }
+    const deadlocked = deadlockDetection(allocation, request, available);
 
-    function visualizeGraph(graph) {
-      const visual = document.getElementById('graphVisual');
-      let html = "<strong>Wait-for Graph:</strong><br>";
-      let hasEdges = false;
-      graph.forEach((edges, i) => {
-        if(edges.length > 0) {
-          hasEdges = true;
-          html += `P${i} &rarr; ${edges.map(e => `P${e}`).join(', ')}<br>`;
-        }
-      });
-      if(!hasEdges) html += "<em>No wait-for relationships.</em>";
-      visual.innerHTML = html;
+    if (deadlocked.length === 0) {
+      resultDiv.textContent = 'No deadlock detected. All processes can complete.';
+      resultDiv.className = 'no-deadlock';
+    } else {
+      resultDiv.innerHTML = `Deadlock detected! Deadlocked process${deadlocked.length > 1 ? 'es' : ''}: <code class="process-list">${deadlocked.map(p => 'P' + p).join(', ')}</code>`;
+      resultDiv.className = 'deadlock';
     }
+  }
 
-    // Initial setup
-    createInputs();
-  </script>
+  // Initialize matrices when page loads or when inputs change
+  processCountInput.addEventListener('input', updateMatrices);
+  resourceCountInput.addEventListener('input', updateMatrices);
+  runBtn.addEventListener('click', runDetection);
+
+  // On page load
+  updateMatrices();
+</script>
 </body>
 </html>
